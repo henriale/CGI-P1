@@ -2,61 +2,60 @@
 #include <fstream>
 #include <sstream>
 #include <stack>
+#include <vector>
 
-int main(int argc, char* argv[])
-{
-    std::ifstream fileStream("../Paths_D.txt");
-    std::string lineBuffer;
-    std::string ratio;
-    int x, y;
+void readLine(std::string &lineBuffer);
 
-    std::getline(fileStream, lineBuffer);
-    ratio = lineBuffer;
+int main(int argc, char *argv[]) {
+  std::ifstream fileStream("../Paths_D.txt");
+  std::string lineBuffer;
+  std::string ratio;
+  std::stack<double> brackets;
+  std::getline(fileStream, lineBuffer);
+  ratio = lineBuffer;
 
-    std::stack<char> brackets;
+  while (fileStream && std::getline(fileStream, lineBuffer)) {
+    readLine(lineBuffer);
+  }
 
-    std::string number;
-    int converted;
+  return 0;
+}
 
-    while (fileStream && std::getline(fileStream, lineBuffer)) {
-        for (char &c : lineBuffer) {
-            if (c == '(') {
-                brackets.push(c);
-                continue;
-            }
+/**
+ *
+ * @param lineBuffer
+ */
+void readLine(std::string &lineBuffer) {
+  std::string storage = "";
+  bool isStoring = false;
+  int number = 0;
 
-            if (brackets.empty()) {
-                continue;
-            }
-
-            if (c == ',') {
-                converted = std::stoi(number);
-                std::cout << converted << '\n';
-
-                if (1 /* first number */) {
-
-                } else if (2 /* second number */) {
-
-                } else  /* third number */ {
-
-                }
-
-                number = "";
-                continue;
-            }
-            number += c;
-
-            if (c == ')') {
-                brackets.pop();
-                continue;
-            }
-
-            if (c == '\t') {
-                // maybe it's not necessary
-                continue;
-            }
-        }
+  for (char &c : lineBuffer) {
+    if (c == '(') {
+      isStoring = true;
+      continue;
     }
 
-    return 0;
+    if (c == ')') {
+      isStoring = false;
+
+      std::istringstream strStream(storage);
+      while(strStream >> number) {
+        strStream.ignore();
+        std::cout << number << '\n';
+      }
+
+      storage = "";
+      continue;
+    }
+
+    if (c == '\t') {
+      // maybe it's not necessary
+      continue;
+    }
+
+    if (isStoring) {
+      storage += c;
+    }
+  }
 }
