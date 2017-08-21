@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 using namespace std;
 
@@ -47,13 +48,19 @@ int main(int argc, char *argv[]) {
 
   auto ** matrix = new Coordinate*[playersCount];
 
+  int i=0;
   while (fileStream && getline(fileStream, lineBuffer)) {
-    matrix[playersCount] = readPlayerCoordinates(lineBuffer, biggestDuration);
+    matrix[i++] = readPlayerCoordinates(lineBuffer, biggestDuration);
   }
 
   for (int i = 0; i < playersCount; i++) {
     for (int j = 0; j < biggestDuration; j++) {
-      cout << "(" << matrix[i][j].x << "," << matrix[i][j].y << ") ";
+        auto point = matrix[i][j];
+        cout << '(';
+        cout << point.x;
+        cout << ',';
+        cout << point.y;
+        cout << ')';
     }
 
     cout << endl;
@@ -83,6 +90,9 @@ Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration) {
 
     ss >> number;
     int index = i/3;
+    if (duration == index) {
+      break;
+    }
     if (i%3 == 0) {
       playersCoordinate[index].x = number;
     } else if (i%3 == 1) {
