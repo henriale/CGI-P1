@@ -1,21 +1,62 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <stack>
-#include <vector>
 
-void readLine(std::string &lineBuffer);
+using namespace std;
+
+class Coordinate {
+ public:
+  Coordinate() {
+    this->x = 0;
+    this->y = 0;
+  }
+
+  double x;
+  double y;
+};
+
+Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration);
 
 int main(int argc, char *argv[]) {
-  std::ifstream fileStream("../Paths_D.txt");
-  std::string lineBuffer;
-  std::string ratio;
-  std::stack<double> brackets;
-  std::getline(fileStream, lineBuffer);
-  ratio = lineBuffer;
+  ifstream fileStream;
+  string lineBuffer;
+  string ratio;
+  int biggestDuration = 0, curr = 0, playersCount = 0;
 
-  while (fileStream && std::getline(fileStream, lineBuffer)) {
-    readLine(lineBuffer);
+  fileStream.open("../Paths_D.txt");
+
+  // reading ratio
+  getline(fileStream, lineBuffer);
+  ratio = stod(lineBuffer.substr(1, lineBuffer.length() - 2));
+
+  // count number of actors and longest duration
+  while (fileStream >> curr) {
+    if (curr > biggestDuration) {
+      biggestDuration = curr;
+    }
+
+    playersCount++;
+    fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
+  }
+
+  // reset file reading
+  fileStream.close();
+  fileStream.open("../Paths_D.txt");
+  // ignore first line
+  fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
+
+  auto ** matrix = new Coordinate*[playersCount];
+
+  while (fileStream && getline(fileStream, lineBuffer)) {
+    matrix[playersCount] = readPlayerCoordinates(lineBuffer, biggestDuration);
+  }
+
+  for (int i = 0; i < playersCount; i++) {
+    for (int j = 0; j < biggestDuration; j++) {
+      cout << "(" << matrix[i][j].x << "," << matrix[i][j].y << ") ";
+    }
+
+    cout << endl;
   }
 
   return 0;
@@ -25,37 +66,30 @@ int main(int argc, char *argv[]) {
  *
  * @param lineBuffer
  */
-void readLine(std::string &lineBuffer) {
-  std::string storage = "";
-  bool isStoring = false;
-  int number = 0;
+Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration) {
+  auto * playersCoordinate = new Coordinate[duration];
+  string storage, limit;
+  int number = 0, i = 0;
 
-  for (char &c : lineBuffer) {
-    if (c == '(') {
-      isStoring = true;
+  istringstream ss(lineBuffer);
+  ss >> limit;
+
+  while (! ss.eof()) {
+    auto c = (char) ss.peek();
+    if (c == '(' || c == ')' || c == ',' || c == '\t') {
+      ss.ignore();
       continue;
     }
 
-    if (c == ')') {
-      isStoring = false;
-
-      std::istringstream strStream(storage);
-      while(strStream >> number) {
-        strStream.ignore();
-        std::cout << number << '\n';
-      }
-
-      storage = "";
-      continue;
+    ss >> number;
+    int index = i/3;
+    if (i%3 == 0) {
+      playersCoordinate[index].x = number;
+    } else if (i%3 == 1) {
+      playersCoordinate[index].y = number;
     }
-
-    if (c == '\t') {
-      // maybe it's not necessary
-      continue;
-    }
-
-    if (isStoring) {
-      storage += c;
-    }
+    i++;
   }
+
+  return playersCoordinate;
 }
