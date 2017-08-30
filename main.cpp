@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
 
 using namespace std;
 
@@ -17,8 +19,33 @@ class Coordinate {
 };
 
 Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration);
+void drawCallback(void);
+void keyboardCallback(unsigned char key, int x, int y);
+void initWindowSize(void);
 
+/**
+ * Application startup
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char *argv[]) {
+
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_3_2_CORE_PROFILE);
+  glutInitWindowSize(500,500);
+  glutCreateWindow("Desenho de um triângulo em 2D");
+
+  // Registra a função callback de redesenho da janela de visualização
+  glutDisplayFunc(drawCallback);
+  // Registra a função callback para tratamento das teclas ASCII
+  glutKeyboardFunc(keyboardCallback);
+  // Chama a função responsável por fazer as inicializações
+  initWindowSize();
+  // Inicia o processamento e aguarda interações do usuário
+  glutMainLoop();
+
   ifstream fileStream;
   string lineBuffer;
   string ratio;
@@ -102,4 +129,48 @@ Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration) {
   }
 
   return playersCoordinate;
+}
+
+/**
+ * @param void
+ */
+void drawCallback(void) {
+  // Limpa a janela de visualização com a cor branca
+  glClearColor(1,1,1,0);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  // Define a cor de desenho: azul
+  glColor3f(0,0,1);
+
+  // Desenha um triângulo no centro da janela
+  glBegin(GL_TRIANGLES);
+  glVertex3f(-0.5,-0.5,0);
+  glVertex3f( 0.0, 0.5,0);
+  glVertex3f( 0.5,-0.5,0);
+  glEnd();
+
+  //Executa os comandos OpenGL
+  glFlush();
+}
+
+/**
+ * @param void
+ */
+void initWindowSize(void) {
+  // Define a janela de visualização 2D
+  glMatrixMode(GL_PROJECTION);
+  gluOrtho2D(-1.0,1.0,-1.0,1.0);
+  glMatrixMode(GL_MODELVIEW);
+}
+
+/**
+ *
+ * @param key
+ * @param x
+ * @param y
+ */
+void keyboardCallback(unsigned char key, int x, int y) {
+  if (key == 27) {
+    exit(0);
+  }
 }
