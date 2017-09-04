@@ -1,8 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
+#ifdef __APPLE__
 #include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
 #include <GLUT/glut.h>
+#else
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
+#endif
 
 using namespace std;
 
@@ -32,11 +43,11 @@ class Window {
     double maxY;
 };
 
-Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration, Window* window);
+Coordinate* readPlayerCoordinates(const string &lineBuffer, int duration, Window* window);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void initWindowSize(double left, double right, double bottom, double top);
-void printMatrix(int biggestDuration, int playersCount, Coordinate *const *matrix);
+void printMatrix(int biggestDuration, int playersCount, Coordinate** matrix);
 
 /**
  * Application startup
@@ -45,7 +56,7 @@ void printMatrix(int biggestDuration, int playersCount, Coordinate *const *matri
  * @param argv
  * @return
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     ifstream fileStream;
     string lineBuffer;
     string ratio;
@@ -76,9 +87,8 @@ int main(int argc, char *argv[]) {
     auto ** matrix = new Coordinate*[playersCount];
     auto * window = new Window;
 
-    int i=0;
-    while (fileStream && getline(fileStream, lineBuffer)) {
-        matrix[i++] = readPlayerCoordinates(lineBuffer, biggestDuration, window);
+    for (int i=0; fileStream && getline(fileStream, lineBuffer); i++) {
+        matrix[i] = readPlayerCoordinates(lineBuffer, biggestDuration, window);
     }
     //printMatrix(biggestDuration, playersCount, matrix);
 
@@ -104,9 +114,9 @@ int main(int argc, char *argv[]) {
  * @todo: pass declared object instead of its size
  * @param lineBuffer
  */
-Coordinate *readPlayerCoordinates(const string &lineBuffer, int duration, Window* window) {
-    auto * playersCoordinate = new Coordinate[duration];
-    Coordinate *point = nullptr;
+Coordinate* readPlayerCoordinates(const string &lineBuffer, int duration, Window* window) {
+    auto * playersCoordinate = new Coordinate[duration + 1];
+    Coordinate* point = nullptr;
     string storage, limit;
     int number = 0, i = 0;
 
@@ -205,7 +215,7 @@ void keyboardCallback(unsigned char key, int x, int y) {
  * @param playersCount
  * @param matrix
  */
-void printMatrix(int biggestDuration, int playersCount, Coordinate *const *matrix) {
+void printMatrix(int biggestDuration, int playersCount, Coordinate** matrix) {
     for (int i = 0; i < playersCount; i++) {
         for (int j = 0; j < biggestDuration; j++) {
             auto point = matrix[i][j];
