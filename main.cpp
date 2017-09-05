@@ -17,9 +17,9 @@
 
 using namespace std;
 
-class Coordinate {
+class Point {
   public:
-    Coordinate() {
+    Point() {
       this->x = 0;
       this->y = 0;
     }
@@ -43,11 +43,63 @@ class Window {
     double maxY;
 };
 
-Coordinate* readPlayerCoordinates(const string &lineBuffer, int duration, Window* window);
+class Reader {
+  public:
+    Reader(string path) {
+        this->path = path;
+        fileStream.open(this->path);
+
+        if (fileStream.fail()) {
+            throw "File doesn't exists";
+        }
+    }
+
+    bool isHeader() {
+        // TODO
+        return false;
+    }
+
+    string next() {
+        string lineBuffer;
+        getline(fileStream, lineBuffer);
+
+        return lineBuffer;
+    }
+
+    void readDimensions() {
+        for (int number=0; fileStream >> number; bodyCount++) {
+            if (number > maxDuration) {
+                maxDuration = number;
+            }
+
+            fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
+
+        this->restart();
+    }
+
+    void restart() {
+        fileStream.clear();
+        fileStream.close();
+        fileStream.open(this->path);
+        this->next();
+    }
+
+    int bodyCount = 0;
+    int maxDuration = 0;
+    ifstream fileStream;
+    string path;
+
+    bool hasNext() {
+        return (bool) fileStream;
+    }
+};
+
+Point* readBodyMoves(const string &lineBuffer, int duration, Window *window);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
-void initWindowSize(double left, double right, double bottom, double top);
-void printMatrix(int biggestDuration, int playersCount, Coordinate** matrix);
+void setupOrthographicMatrix(double left, double right, double bottom, double top);
+void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
 
 /**
  * Application startup
@@ -57,40 +109,16 @@ void printMatrix(int biggestDuration, int playersCount, Coordinate** matrix);
  * @return
  */
 int main(int argc, char* argv[]) {
-    ifstream fileStream;
-    string lineBuffer;
-    string ratio;
-    int biggestDuration = 0, curr = 0, playersCount = 0;
+    Reader* reader = new Reader("../Paths_D.txt");
+    reader->readDimensions();
 
-    fileStream.open("../Paths_D.txt");
-
-    // reading ratio
-    getline(fileStream, lineBuffer);
-    ratio = stod(lineBuffer.substr(1, lineBuffer.length() - 2));
-
-    // count number of actors and longest duration
-    while (fileStream >> curr) {
-        if (curr > biggestDuration) {
-            biggestDuration = curr;
-        }
-
-        playersCount++;
-        fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
-    }
-
-    // reset file reading
-    fileStream.close();
-    fileStream.open("../Paths_D.txt");
-    // ignore first line
-    fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
-
-    auto ** matrix = new Coordinate*[playersCount];
+    auto ** matrix = new Point*[reader->bodyCount];
     auto * window = new Window;
 
-    for (int i=0; fileStream && getline(fileStream, lineBuffer); i++) {
-        matrix[i] = readPlayerCoordinates(lineBuffer, biggestDuration, window);
+    for (int i=0; reader->hasNext(); i++) {
+        matrix[i] = readBodyMoves(reader->next(), reader->maxDuration, window);
     }
-    //printMatrix(biggestDuration, playersCount, matrix);
+    printMatrix(reader->maxDuration, reader->bodyCount, matrix);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -103,7 +131,7 @@ int main(int argc, char* argv[]) {
     glutKeyboardFunc(keyboardCallback);
     // Chama a função responsável por fazer as inicializações
     //initWindowSize(minX, maxX, minY, maxY);
-    initWindowSize(0, 1500, 0, 1500);
+    setupOrthographicMatrix(0, 1500, 0, 1500);
     // Inicia o processamento e aguarda interações do usuário
     glutMainLoop();
 
@@ -114,9 +142,9 @@ int main(int argc, char* argv[]) {
  * @todo: pass declared object instead of its size
  * @param lineBuffer
  */
-Coordinate* readPlayerCoordinates(const string &lineBuffer, int duration, Window* window) {
-    auto * playersCoordinate = new Coordinate[duration + 1];
-    Coordinate* point = nullptr;
+Point* readBodyMoves(const string &lineBuffer, int duration, Window *window) {
+    auto * playersCoordinate = new Point[duration + 1];
+    Point* point = nullptr;
     string storage, limit;
     int number = 0, i = 0;
 
@@ -136,7 +164,7 @@ Coordinate* readPlayerCoordinates(const string &lineBuffer, int duration, Window
             break;
         }
         if (i%3 == 0) {
-            point = new Coordinate;
+            point = new Point;
             point->x = number;
         } else if (i%3 == 1) {
             point->y = number;
@@ -191,7 +219,7 @@ void drawCallback(void) {
  * @param bottom
  * @param top
  */
-void initWindowSize(double left, double right, double bottom, double top) {
+void setupOrthographicMatrix(double left, double right, double bottom, double top) {
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(left, right, bottom, top);
     glMatrixMode(GL_MODELVIEW);
@@ -212,11 +240,11 @@ void keyboardCallback(unsigned char key, int x, int y) {
 /**
  *
  * @param biggestDuration
- * @param playersCount
+ * @param bodyCount
  * @param matrix
  */
-void printMatrix(int biggestDuration, int playersCount, Coordinate** matrix) {
-    for (int i = 0; i < playersCount; i++) {
+void printMatrix(int biggestDuration, int bodyCount, Point** matrix) {
+    for (int i = 0; i < bodyCount; i++) {
         for (int j = 0; j < biggestDuration; j++) {
             auto point = matrix[i][j];
             cout << '(';
