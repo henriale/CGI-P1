@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <utility>
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
@@ -20,13 +21,16 @@ using namespace std;
 class Point {
   public:
     Point() {
-      this->x = 0;
-      this->y = 0;
+        this->x = 0;
+        this->y = 0;
     }
 
     double x;
     double y;
 };
+
+typedef Point** Scene;
+Scene scene = nullptr;
 
 class Window {
   public:
@@ -43,15 +47,19 @@ class Window {
     double maxY;
 };
 
+Window* window = new Window;
+
 class Reader {
   public:
-    Reader(string path) {
-        this->path = path;
+    explicit Reader(string path) {
+        this->path = std::move(path);
         fileStream.open(this->path);
 
         if (fileStream.fail()) {
             throw "File doesn't exists";
         }
+
+        this->next();
     }
 
     bool isHeader() {
@@ -95,11 +103,14 @@ class Reader {
     }
 };
 
+Reader* reader = nullptr;
+
 Point* readBodyMoves(const string &lineBuffer, int duration, Window *window);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void setupOrthographicMatrix(double left, double right, double bottom, double top);
 void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
+
 
 /**
  * Application startup
@@ -109,16 +120,16 @@ void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
  * @return
  */
 int main(int argc, char* argv[]) {
-    Reader* reader = new Reader("../Paths_D.txt");
+    reader = new Reader("../Paths_D.txt");
     reader->readDimensions();
 
-    auto ** matrix = new Point*[reader->bodyCount];
-    auto * window = new Window;
+    scene = new Point*[reader->bodyCount];
 
     for (int i=0; reader->hasNext(); i++) {
-        matrix[i] = readBodyMoves(reader->next(), reader->maxDuration, window);
+        scene[i] = readBodyMoves(reader->next(), reader->maxDuration, window);
     }
-    printMatrix(reader->maxDuration, reader->bodyCount, matrix);
+
+    //printMatrix(reader->maxDuration, reader->bodyCount, scene);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -130,8 +141,8 @@ int main(int argc, char* argv[]) {
     // Registra a função callback para tratamento das teclas ASCII
     glutKeyboardFunc(keyboardCallback);
     // Chama a função responsável por fazer as inicializações
-    //initWindowSize(minX, maxX, minY, maxY);
-    setupOrthographicMatrix(0, 1500, 0, 1500);
+    setupOrthographicMatrix(window->minX, window->maxX, window->minY, window->maxY);
+    //setupOrthographicMatrix(0, 1500, 0, 1500);
     // Inicia o processamento e aguarda interações do usuário
     glutMainLoop();
 
@@ -199,14 +210,28 @@ void drawCallback(void) {
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Define a cor de desenho: azul
-    glColor3f(0,0,1);
+    GLfloat thickness = 15.0;
 
-    // Desenha um triângulo no centro da janela
-    glBegin(GL_LINES);
-    glVertex2f(500, 500);
-    glVertex2f(750, 500);
-    glEnd();
+    for (int i=0; i<reader->bodyCount; i++) {
+        Point* lastPoint = nullptr;
+
+        glColor3f(1, 0, 1);
+
+        glLineWidth(thickness);
+        glBegin(GL_LINES);
+        for (int j=1; j<reader->maxDuration; j++) {
+                glVertex2f(scene[i][j].x, scene[i][j].y);
+                cout << "plotting " << scene[i][j].x << ", " << scene[i][j].y << '\n';
+            if (lastPoint == nullptr || scene[i][j].x != lastPoint->x || scene[i][j].y != lastPoint->y) {
+            }
+            lastPoint = &scene[i][j];
+        }
+
+        glEnd();
+
+        cout << " | ending line | \n";
+
+    }
 
     //Executa os comandos OpenGL
     glFlush();
