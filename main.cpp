@@ -23,10 +23,39 @@ class Point {
     Point() {
         this->x = 0;
         this->y = 0;
+        this->touched = false;
     }
 
+    void setX(double x) {
+        this->x = x;
+        this->touch();
+    }
+
+    void setY(double y) {
+        this->y = y;
+        this->touch();
+    }
+
+    void touch() {
+        this->touched = true;
+    }
+
+    double getX() {
+        return this->x;
+    }
+
+    double getY() {
+        return this->y;
+    }
+
+    bool isTouched() {
+        return this->touched;
+    }
+
+  private:
     double x;
     double y;
+    bool touched;
 };
 
 typedef Point** Scene;
@@ -141,7 +170,7 @@ int main(int argc, char* argv[]) {
     // Registra a função callback para tratamento das teclas ASCII
     glutKeyboardFunc(keyboardCallback);
     // Chama a função responsável por fazer as inicializações
-    setupOrthographicMatrix(window->minX, window->maxX, window->minY, window->maxY);
+    setupOrthographicMatrix(window->minX, window->maxX, window->maxY, window->minY);
     //setupOrthographicMatrix(0, 1500, 0, 1500);
     // Inicia o processamento e aguarda interações do usuário
     glutMainLoop();
@@ -176,23 +205,25 @@ Point* readBodyMoves(const string &lineBuffer, int duration, Window *window) {
         }
         if (i%3 == 0) {
             point = new Point;
-            point->x = number;
+            point->setX(number);
+            //point->x = number;
         } else if (i%3 == 1) {
-            point->y = number;
+            point->setY(number);
+            //point->y = number;
         } else {
             playersCoordinate[number] = *point;
 
-            if (point->x > window->maxX) {
-                window->maxX = point->x;
+            if (point->getX() > window->maxX) {
+                window->maxX = point->getX();
             }
-            if (point->x < window->minX) {
-                window->minX = point->x;
+            if (point->getX() < window->minX) {
+                window->minX = point->getX();
             }
-            if (point->y > window->maxY) {
-                window->maxY = point->y;
+            if (point->getY() > window->maxY) {
+                window->maxY = point->getY();
             }
-            if (point->y < window->minY) {
-                window->minY = point->y;
+            if (point->getY() < window->minY) {
+                window->minY = point->getY();
             }
         }
 
@@ -210,19 +241,23 @@ void drawCallback(void) {
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    GLfloat thickness = 15.0;
+    GLfloat thickness = 1.0;
 
     for (int i=0; i<reader->bodyCount; i++) {
         Point* lastPoint = nullptr;
 
-        glColor3f(1, 0, 1);
+        glColor3f(((float)(rand()%100))/100, ((float)(rand()%100))/100, ((float)(rand()%100))/100);
 
         glLineWidth(thickness);
-        glBegin(GL_LINES);
+        glBegin(GL_LINE_STRIP);
         for (int j=1; j<reader->maxDuration; j++) {
-                glVertex2f(scene[i][j].x, scene[i][j].y);
-                cout << "plotting " << scene[i][j].x << ", " << scene[i][j].y << '\n';
-            if (lastPoint == nullptr || scene[i][j].x != lastPoint->x || scene[i][j].y != lastPoint->y) {
+            if (scene[i][j].isTouched() &&
+                (lastPoint == nullptr
+                || scene[i][j].getX() != lastPoint->getX()
+                || scene[i][j].getY() != lastPoint->getY())
+            ) {
+                glVertex2f((GLfloat) scene[i][j].getX(), (GLfloat) scene[i][j].getY());
+                cout << "plotting " << scene[i][j].getX() << ", " << scene[i][j].getY() << '\n';
             }
             lastPoint = &scene[i][j];
         }
@@ -273,9 +308,9 @@ void printMatrix(int biggestDuration, int bodyCount, Point** matrix) {
         for (int j = 0; j < biggestDuration; j++) {
             auto point = matrix[i][j];
             cout << '(';
-            cout << point.x;
+            cout << point.getX();
             cout << ',';
-            cout << point.y;
+            cout << point.getY();
             cout << ',';
             cout << j;
             cout << ')';
