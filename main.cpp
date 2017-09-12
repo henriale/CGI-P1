@@ -61,22 +61,39 @@ class Point {
 typedef Point** Scene;
 Scene scene = nullptr;
 
-class Window {
+class Wanderer {
   public:
-    Window() {
-        this->minX = numeric_limits<double>::max();
-        this->minY = numeric_limits<double>::max();
-        this->maxX = numeric_limits<double>::min();
-        this->maxY = numeric_limits<double>::min();
+    Point* atFrame(int frame) {
+        return this->journey[frame];
     }
 
-    double minX;
-    double minY;
-    double maxX;
-    double maxY;
+    void printJourney() {
+        cout << "print not implemented yet";
+    }
+
+  private:
+    Point** journey;
 };
 
-Window* window = new Window;
+class EventObserver {
+  public:
+
+  private:
+    EventObserver() {}
+};
+
+class Window {
+  public:
+    static double minX;
+    static double minY;
+    static double maxX;
+    static double maxY;
+};
+
+double Window::minX = numeric_limits<double>::max();
+double Window::minY = numeric_limits<double>::max();
+double Window::maxX = numeric_limits<double>::min();
+double Window::maxY = numeric_limits<double>::min();
 
 class Reader {
   public:
@@ -91,11 +108,6 @@ class Reader {
         this->next();
     }
 
-    bool isHeader() {
-        // TODO
-        return false;
-    }
-
     string next() {
         string lineBuffer;
         getline(fileStream, lineBuffer);
@@ -103,7 +115,7 @@ class Reader {
         return lineBuffer;
     }
 
-    void readDimensions() {
+    void dimensions() {
         for (int number=0; fileStream >> number; bodyCount++) {
             if (number > maxDuration) {
                 maxDuration = number;
@@ -134,10 +146,10 @@ class Reader {
 
 Reader* reader = nullptr;
 
-Point* readBodyMoves(const string &lineBuffer, int duration, Window *window);
+Point* readBodyMoves(const string &lineBuffer, int duration);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
-void setupOrthographicMatrix(double left, double right, double bottom, double top);
+void setupOrthographicMatrix();
 void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
 
 
@@ -150,29 +162,23 @@ void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
  */
 int main(int argc, char* argv[]) {
     reader = new Reader("../Paths_D.txt");
-    reader->readDimensions();
+    reader->dimensions();
 
+    //Wanderer* wanderers = new Wanderer[reader->bodyCount];
     scene = new Point*[reader->bodyCount];
 
     for (int i=0; reader->hasNext(); i++) {
-        scene[i] = readBodyMoves(reader->next(), reader->maxDuration, window);
+        //wanderers[i] = readBodyMoves(reader->next(), reader->maxDuration);
+        scene[i] = readBodyMoves(reader->next(), reader->maxDuration);
     }
-
-    //printMatrix(reader->maxDuration, reader->bodyCount, scene);
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    //glutInitWindowSize(static_cast<int>(maxX-minX), static_cast<int>(maxY-minY));
     glutInitWindowSize(500, 500);
-    glutCreateWindow("Análise de movimentação");
-    // Registra a função callback de redesenho da janela de visualização
+    glutCreateWindow("Analise de movimento");
     glutDisplayFunc(drawCallback);
-    // Registra a função callback para tratamento das teclas ASCII
     glutKeyboardFunc(keyboardCallback);
-    // Chama a função responsável por fazer as inicializações
-    setupOrthographicMatrix(window->minX, window->maxX, window->maxY, window->minY);
-    //setupOrthographicMatrix(0, 1500, 0, 1500);
-    // Inicia o processamento e aguarda interações do usuário
+    setupOrthographicMatrix();
     glutMainLoop();
 
     return 0;
@@ -182,7 +188,7 @@ int main(int argc, char* argv[]) {
  * @todo: pass declared object instead of its size
  * @param lineBuffer
  */
-Point* readBodyMoves(const string &lineBuffer, int duration, Window *window) {
+Point* readBodyMoves(const string &lineBuffer, int duration) {
     auto * playersCoordinate = new Point[duration + 1];
     Point* point = nullptr;
     string storage, limit;
@@ -206,24 +212,22 @@ Point* readBodyMoves(const string &lineBuffer, int duration, Window *window) {
         if (i%3 == 0) {
             point = new Point;
             point->setX(number);
-            //point->x = number;
         } else if (i%3 == 1) {
             point->setY(number);
-            //point->y = number;
         } else {
             playersCoordinate[number] = *point;
 
-            if (point->getX() > window->maxX) {
-                window->maxX = point->getX();
+            if (point->getX() > Window::maxX) {
+                Window::maxX = point->getX();
             }
-            if (point->getX() < window->minX) {
-                window->minX = point->getX();
+            if (point->getX() < Window::minX) {
+                Window::minX = point->getX();
             }
-            if (point->getY() > window->maxY) {
-                window->maxY = point->getY();
+            if (point->getY() > Window::maxY) {
+                Window::maxY = point->getY();
             }
-            if (point->getY() < window->minY) {
-                window->minY = point->getY();
+            if (point->getY() < Window::minY) {
+                Window::minY = point->getY();
             }
         }
 
@@ -237,7 +241,6 @@ Point* readBodyMoves(const string &lineBuffer, int duration, Window *window) {
  * @param void
  */
 void drawCallback(void) {
-    // Limpa a janela de visualização com a cor branca
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -264,11 +267,8 @@ void drawCallback(void) {
 
         glEnd();
 
-        cout << " | ending line | \n";
-
     }
 
-    //Executa os comandos OpenGL
     glFlush();
 }
 
@@ -279,9 +279,9 @@ void drawCallback(void) {
  * @param bottom
  * @param top
  */
-void setupOrthographicMatrix(double left, double right, double bottom, double top) {
+void setupOrthographicMatrix() {
     glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(left, right, bottom, top);
+    gluOrtho2D(Window::minX, Window::maxX, Window::maxY, Window::minY);
     glMatrixMode(GL_MODELVIEW);
 }
 
