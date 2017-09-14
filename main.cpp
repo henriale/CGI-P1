@@ -63,6 +63,9 @@ Scene scene = nullptr;
 
 class Wanderer {
   public:
+    Wanderer(int duration) {
+        this->journey = new Point*[duration];
+    }
     Point* atFrame(int frame) {
         return this->journey[frame];
     }
@@ -71,7 +74,12 @@ class Wanderer {
         cout << "print not implemented yet";
     }
 
-  private:
+    void setFrame(int frame, Point *point) {
+        this->journey[frame] = point;
+
+    }
+
+private:
     Point** journey;
 };
 
@@ -97,6 +105,11 @@ double Window::maxY = numeric_limits<double>::min();
 
 class Reader {
   public:
+    int bodyCount = 0;
+    int maxDuration = 0;
+    ifstream fileStream;
+    string path;
+
     explicit Reader(string path) {
         this->path = std::move(path);
         fileStream.open(this->path);
@@ -134,19 +147,64 @@ class Reader {
         this->next();
     }
 
-    int bodyCount = 0;
-    int maxDuration = 0;
-    ifstream fileStream;
-    string path;
-
     bool hasNext() {
         return (bool) fileStream;
+    }
+
+    Wanderer* nextWandererJourney() {
+        Wanderer* wandererJourney = new Wanderer(this->maxDuration + 1);
+        Point* point = nullptr;
+
+        string storage, limit;
+        int aux = 0, i = 0;
+
+        istringstream ss(this->next());
+        ss >> limit;
+
+        while (! ss.eof()) {
+            auto c = (char) ss.peek();
+            if (c == '(' || c == ')' || c == ',' || c == '\t') {
+                ss.ignore();
+                continue;
+            }
+
+            ss >> aux;
+            int index = i/3;
+            if (this->maxDuration == index) {
+                break;
+            }
+            if (i%3 == 0) {
+                point = new Point;
+                point->setX(aux);
+            } else if (i%3 == 1) {
+                point->setY(aux);
+            } else {
+                wandererJourney->setFrame(aux, point);
+
+                if (point->getX() > Window::maxX) {
+                    Window::maxX = point->getX();
+                }
+                if (point->getX() < Window::minX) {
+                    Window::minX = point->getX();
+                }
+                if (point->getY() > Window::maxY) {
+                    Window::maxY = point->getY();
+                }
+                if (point->getY() < Window::minY) {
+                    Window::minY = point->getY();
+                }
+            }
+
+            i++;
+        }
+
+        return wandererJourney;
     }
 };
 
 Reader* reader = nullptr;
+Wanderer** wanderers = nullptr;
 
-Point* readBodyMoves(const string &lineBuffer, int duration);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void setupOrthographicMatrix();
@@ -164,12 +222,11 @@ int main(int argc, char* argv[]) {
     reader = new Reader("../Paths_D.txt");
     reader->dimensions();
 
-    //Wanderer* wanderers = new Wanderer[reader->bodyCount];
-    scene = new Point*[reader->bodyCount];
+    wanderers = new Wanderer*[reader->bodyCount];
+
 
     for (int i=0; reader->hasNext(); i++) {
-        //wanderers[i] = readBodyMoves(reader->next(), reader->maxDuration);
-        scene[i] = readBodyMoves(reader->next(), reader->maxDuration);
+        wanderers[i] = reader->nextWandererJourney();
     }
 
     glutInit(&argc, argv);
@@ -184,58 +241,6 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-/**
- * @todo: pass declared object instead of its size
- * @param lineBuffer
- */
-Point* readBodyMoves(const string &lineBuffer, int duration) {
-    auto * playersCoordinate = new Point[duration + 1];
-    Point* point = nullptr;
-    string storage, limit;
-    int number = 0, i = 0;
-
-    istringstream ss(lineBuffer);
-    ss >> limit;
-
-    while (! ss.eof()) {
-        auto c = (char) ss.peek();
-        if (c == '(' || c == ')' || c == ',' || c == '\t') {
-            ss.ignore();
-            continue;
-        }
-
-        ss >> number;
-        int index = i/3;
-        if (duration == index) {
-            break;
-        }
-        if (i%3 == 0) {
-            point = new Point;
-            point->setX(number);
-        } else if (i%3 == 1) {
-            point->setY(number);
-        } else {
-            playersCoordinate[number] = *point;
-
-            if (point->getX() > Window::maxX) {
-                Window::maxX = point->getX();
-            }
-            if (point->getX() < Window::minX) {
-                Window::minX = point->getX();
-            }
-            if (point->getY() > Window::maxY) {
-                Window::maxY = point->getY();
-            }
-            if (point->getY() < Window::minY) {
-                Window::minY = point->getY();
-            }
-        }
-
-        i++;
-    }
-
-    return playersCoordinate;
-}
 
 /**
  * @param void
@@ -254,15 +259,15 @@ void drawCallback(void) {
         glLineWidth(thickness);
         glBegin(GL_LINE_STRIP);
         for (int j=1; j<reader->maxDuration; j++) {
-            if (scene[i][j].isTouched() &&
+            if (wanderers[i]->atFrame(j) != nullptr &&
                 (lastPoint == nullptr
-                || scene[i][j].getX() != lastPoint->getX()
-                || scene[i][j].getY() != lastPoint->getY())
+                || wanderers[i]->atFrame(j)->getX() != lastPoint->getX()
+                || wanderers[i]->atFrame(j)->getY() != lastPoint->getY())
             ) {
-                glVertex2f((GLfloat) scene[i][j].getX(), (GLfloat) scene[i][j].getY());
-                cout << "plotting " << scene[i][j].getX() << ", " << scene[i][j].getY() << '\n';
+                glVertex2f((GLfloat) wanderers[i]->atFrame(j)->getX(), (GLfloat) wanderers[i]->atFrame(j)->getY());
+                cout << "plotting[" << i << "][" << j << "] " << wanderers[i]->atFrame(j)->getX() << ", " << wanderers[i]->atFrame(j)->getY() << '\n';
             }
-            lastPoint = &scene[i][j];
+            lastPoint = wanderers[i]->atFrame(j);
         }
 
         glEnd();
