@@ -60,7 +60,7 @@ class Point {
 class Wanderer {
   public:
     Wanderer(int duration) {
-        this->journey = (Point **) malloc(sizeof(Point) * duration);
+        this->journey = (Point**) calloc(duration, sizeof(Point**));
     }
     Point* atFrame(int frame) {
         return this->journey[frame-1];
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
     }
     reader->dimensions();
 
-    wanderers = new Wanderer*[reader->bodyCount];
+    wanderers = (Wanderer **) calloc(reader->maxDuration * reader->bodyCount, sizeof(Wanderer**));
 
     for (int i=0; reader->hasNext(); i++) {
         wanderers[i] = reader->nextWandererJourney();
@@ -240,6 +240,8 @@ int main(int argc, char* argv[]) {
     setupOrthographicMatrix();
     glutMainLoop();
 
+    free(wanderers);
+    free(reader);
     return 0;
 }
 
