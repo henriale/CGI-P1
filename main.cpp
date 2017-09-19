@@ -243,11 +243,22 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+void renderText(const char *text, double x, double y) {
+    glColor3f(1, 0, 0);
+    glRasterPos2f((GLfloat) x, (GLfloat) y);
+
+    while (*text != '\0') {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, (int) *text);
+        text++;
+    }
+}
 
 /**
  * @param void
  */
 void drawCallback(void) {
+    renderText("This text should be printed", Window::minX + 20, Window::minY + 20);
+
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
