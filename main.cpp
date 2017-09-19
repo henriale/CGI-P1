@@ -198,15 +198,37 @@ class Reader {
     }
 };
 
+class RGB {
+  public:
+    RGB(GLfloat r, GLfloat g, GLfloat b) {
+        this->r = r;
+        this->g = g;
+        this->b = b;
+    }
+
+    GLfloat r;
+    GLfloat g;
+    GLfloat b;
+};
+
 Reader* reader = nullptr;
 Wanderer** wanderers = nullptr;
-
+RGB** palette = nullptr;
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
 void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
 
+
+RGB** colorPalette() {
+    RGB **palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
+    for (int i=0; i<reader->bodyCount; i++) {
+        palette[i] = new RGB((float) (rand() % 100) / 100, ((float)(rand() % 100)) / 100, ((float)(rand() % 100)) / 100);
+    }
+
+    return palette;
+}
 
 /**
  * Application startup
@@ -226,6 +248,7 @@ int main(int argc, char* argv[]) {
     }
     reader->dimensions();
 
+    palette = colorPalette();
     wanderers = (Wanderer **) calloc(reader->maxDuration * reader->bodyCount, sizeof(Wanderer**));
 
     for (int i=0; reader->hasNext(); i++) {
@@ -244,6 +267,7 @@ int main(int argc, char* argv[]) {
 
     free(wanderers);
     free(reader);
+
     return 0;
 }
 
@@ -266,12 +290,11 @@ void drawCallback(void) {
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    GLfloat thickness = 1.0;
+    GLfloat thickness = 2.0;
 
     for (int i=0; i<reader->bodyCount; i++) {
         Point* lastPoint = nullptr;
-
-        glColor3f(((float)(rand()%100))/100, ((float)(rand()%100))/100, ((float)(rand()%100))/100);
+        glColor3f(palette[i]->r, palette[i]->g, palette[i]->b);
 
         glLineWidth(thickness);
         glBegin(GL_LINE_STRIP);
