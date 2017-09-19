@@ -1,8 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <limits>
-#include <utility>
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
@@ -14,6 +12,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+#include <limits>
 #endif
 
 using namespace std;
@@ -58,16 +57,13 @@ class Point {
     bool touched;
 };
 
-typedef Point** Scene;
-Scene scene = nullptr;
-
 class Wanderer {
   public:
     Wanderer(int duration) {
-        this->journey = new Point*[duration];
+        this->journey = (Point **) malloc(sizeof(Point) * duration);
     }
     Point* atFrame(int frame) {
-        return this->journey[frame];
+        return this->journey[frame-1];
     }
 
     void printJourney() {
@@ -75,7 +71,7 @@ class Wanderer {
     }
 
     void setFrame(int frame, Point *point) {
-        this->journey[frame] = point;
+        this->journey[frame-1] = point;
 
     }
 
