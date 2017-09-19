@@ -219,11 +219,17 @@ void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
  * @return
  */
 int main(int argc, char* argv[]) {
-    reader = new Reader("../Paths_D.txt");
+
+    string filename = "../dataset/" + string(argv[1]) + ".txt";
+    try {
+        reader = new Reader(filename);
+    } catch (char const* error) {
+        cout << error;
+        exit(EXIT_FAILURE);
+    }
     reader->dimensions();
 
     wanderers = new Wanderer*[reader->bodyCount];
-
 
     for (int i=0; reader->hasNext(); i++) {
         wanderers[i] = reader->nextWandererJourney();
