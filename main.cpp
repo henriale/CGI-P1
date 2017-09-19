@@ -203,6 +203,7 @@ Wanderer** wanderers = nullptr;
 
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
+void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
 void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
 
@@ -237,6 +238,7 @@ int main(int argc, char* argv[]) {
     glutCreateWindow("Analise de movimento");
     glutDisplayFunc(drawCallback);
     glutKeyboardFunc(keyboardCallback);
+    glutSpecialFunc(keyboardSpecialCallback);
     setupOrthographicMatrix();
     glutMainLoop();
 
@@ -314,6 +316,42 @@ void setupOrthographicMatrix() {
 void keyboardCallback(unsigned char key, int x, int y) {
     if (key == 27) {
         exit(0);
+    }
+}
+
+/**
+ *
+ * @param key
+ * @param x
+ * @param y
+ */
+void keyboardSpecialCallback(int key, int x, int y) {
+    switch (key) {
+        case 100:
+            reader->maxDuration = reader->maxDuration - 10;
+            glutPostRedisplay();
+            return;
+            break;
+        case 101:
+            return;
+            break;
+        case 102:
+            reader->maxDuration = reader->maxDuration + 10;
+            glutPostRedisplay();
+            return;
+            break;
+        case 103:
+            return;
+            break;
+    }
+
+
+    if (key == 100) {
+        return;
+    }
+
+    if (key == 101) {
+        return;
     }
 }
 
