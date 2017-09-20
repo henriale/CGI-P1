@@ -15,212 +15,19 @@
 #include <limits>
 #endif
 
+#include "lib/Point.h"
+#include "lib/Wanderer.h"
+#include "lib/Window.h"
+#include "lib/Reader.h"
+#include "lib/RGB.h"
+
 using namespace std;
-
-class Point {
-  public:
-    Point() {
-        this->x = 0;
-        this->y = 0;
-        this->touched = false;
-    }
-
-    void setX(double x) {
-        this->x = x;
-        this->touch();
-    }
-
-    void setY(double y) {
-        this->y = y;
-        this->touch();
-    }
-
-    void touch() {
-        this->touched = true;
-    }
-
-    double getX() {
-        return this->x;
-    }
-
-    double getY() {
-        return this->y;
-    }
-
-    bool isTouched() {
-        return this->touched;
-    }
-
-  private:
-    double x;
-    double y;
-    bool touched;
-};
-
-class Wanderer {
-  public:
-    Wanderer(int duration) {
-        this->journey = (Point**) calloc(duration, sizeof(Point**));
-    }
-
-    Point* atFrame(int frame) {
-        return this->journey[frame-1];
-    }
-
-    void printJourney() {
-        int duration = sizeof(this->journey) / sizeof(this->journey[0]);
-        for (int i = 0; i < duration; i++) {
-            cout << '(';
-            cout << this->journey[i]->getX();
-            cout << ',';
-            cout << this->journey[i]->getY();
-            cout << ',';
-            cout << i;
-            cout << ')';
-        }
-
-        cout << endl;
-    }
-
-    void setFrame(int frame, Point *point) {
-        this->journey[frame-1] = point;
-
-    }
-
-private:
-    Point** journey;
-};
 
 class EventObserver {
   public:
 
   private:
     EventObserver() {}
-};
-
-class Window {
-  public:
-    static double minX;
-    static double minY;
-    static double maxX;
-    static double maxY;
-};
-
-double Window::minX = numeric_limits<double>::max();
-double Window::minY = numeric_limits<double>::max();
-double Window::maxX = numeric_limits<double>::min();
-double Window::maxY = numeric_limits<double>::min();
-
-class Reader {
-  public:
-    int bodyCount = 0;
-    int maxDuration = 0;
-    ifstream fileStream;
-    string path;
-
-    explicit Reader(string path) {
-        this->path = std::move(path);
-        fileStream.open(this->path);
-
-        if (fileStream.fail()) {
-            throw "File doesn't exists";
-        }
-
-        this->next();
-    }
-
-    string next() {
-        string lineBuffer;
-        getline(fileStream, lineBuffer);
-
-        return lineBuffer;
-    }
-
-    void dimensions() {
-        for (int number=0; fileStream >> number; bodyCount++) {
-            if (number > maxDuration) {
-                maxDuration = number;
-            }
-
-            fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
-        }
-
-        this->restart();
-    }
-
-    void restart() {
-        fileStream.clear();
-        fileStream.close();
-        fileStream.open(this->path);
-        this->next();
-    }
-
-    bool hasNext() {
-        return (bool) fileStream;
-    }
-
-    Wanderer* nextWandererJourney() {
-        Wanderer* wandererJourney = new Wanderer(this->maxDuration + 1);
-        Point* point = nullptr;
-
-        string storage, limit;
-        int aux = 0, i = 0;
-
-        istringstream ss(this->next());
-        ss >> limit;
-
-        while (! ss.eof()) {
-            auto c = (char) ss.peek();
-            if (c == '(' || c == ')' || c == ',' || c == '\t') {
-                ss.ignore();
-                continue;
-            }
-
-            ss >> aux;
-            int index = i/3;
-            if (this->maxDuration == index) {
-                break;
-            }
-            if (i%3 == 0) {
-                point = new Point;
-                point->setX(aux);
-            } else if (i%3 == 1) {
-                point->setY(aux);
-            } else {
-                wandererJourney->setFrame(aux, point);
-
-                if (point->getX() > Window::maxX) {
-                    Window::maxX = point->getX();
-                }
-                if (point->getX() < Window::minX) {
-                    Window::minX = point->getX();
-                }
-                if (point->getY() > Window::maxY) {
-                    Window::maxY = point->getY();
-                }
-                if (point->getY() < Window::minY) {
-                    Window::minY = point->getY();
-                }
-            }
-
-            i++;
-        }
-
-        return wandererJourney;
-    }
-};
-
-class RGB {
-  public:
-    RGB(GLfloat r, GLfloat g, GLfloat b) {
-        this->r = r;
-        this->g = g;
-        this->b = b;
-    }
-
-    GLfloat r;
-    GLfloat g;
-    GLfloat b;
 };
 
 Reader* reader = nullptr;
@@ -231,16 +38,7 @@ void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
-
-
-RGB** colorPalette() {
-    RGB** palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
-    for (int i=0; i<reader->bodyCount; i++) {
-        palette[i] = new RGB((float) (rand() % 85 + 15) / 100, ((float)(rand() % 85 + 15)) / 100, ((float)(rand() % 85 + 15)) / 100);
-    }
-
-    return palette;
-}
+RGB** colorPalette();
 
 /**
  * Application startup
@@ -386,4 +184,13 @@ void keyboardSpecialCallback(int key, int x, int y) {
 
         default:break;
     }
+}
+
+RGB **colorPalette() {
+    auto palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
+    for (int i=0; i<reader->bodyCount; i++) {
+        palette[i] = new RGB();
+    }
+
+    return palette;
 }
