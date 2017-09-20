@@ -62,12 +62,24 @@ class Wanderer {
     Wanderer(int duration) {
         this->journey = (Point**) calloc(duration, sizeof(Point**));
     }
+
     Point* atFrame(int frame) {
         return this->journey[frame-1];
     }
 
     void printJourney() {
-        cout << "print not implemented yet";
+        int duration = sizeof(this->journey) / sizeof(this->journey[0]);
+        for (int i = 0; i < duration; i++) {
+            cout << '(';
+            cout << this->journey[i]->getX();
+            cout << ',';
+            cout << this->journey[i]->getY();
+            cout << ',';
+            cout << i;
+            cout << ')';
+        }
+
+        cout << endl;
     }
 
     void setFrame(int frame, Point *point) {
@@ -214,15 +226,15 @@ class RGB {
 Reader* reader = nullptr;
 Wanderer** wanderers = nullptr;
 RGB** palette = nullptr;
+
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
-void printMatrix(int biggestDuration, int bodyCount, Point** matrix);
 
 
 RGB** colorPalette() {
-    RGB **palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
+    RGB** palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
     for (int i=0; i<reader->bodyCount; i++) {
         palette[i] = new RGB((float) (rand() % 100) / 100, ((float)(rand() % 100)) / 100, ((float)(rand() % 100)) / 100);
     }
@@ -246,14 +258,26 @@ int main(int argc, char* argv[]) {
         cout << error;
         exit(EXIT_FAILURE);
     }
+
+    // TODO:
+    // reader->readWindowDimensions();
     reader->dimensions();
 
+
+    // TODO:
+    // CollorPalette::generate();
     palette = colorPalette();
+
+    // TODO:
+    // wanderers = reader->readWanderersJourney();
     wanderers = (Wanderer **) calloc(reader->maxDuration * reader->bodyCount, sizeof(Wanderer**));
 
+    // TODO:
+    // remove this block of code
     for (int i=0; reader->hasNext(); i++) {
         wanderers[i] = reader->nextWandererJourney();
     }
+
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -354,49 +378,12 @@ void keyboardSpecialCallback(int key, int x, int y) {
             reader->maxDuration = reader->maxDuration - 10;
             glutPostRedisplay();
             return;
-            break;
-        case 101:
-            return;
-            break;
+
         case 102:
             reader->maxDuration = reader->maxDuration + 10;
             glutPostRedisplay();
             return;
-            break;
-        case 103:
-            return;
-            break;
-    }
 
-
-    if (key == 100) {
-        return;
-    }
-
-    if (key == 101) {
-        return;
-    }
-}
-
-/**
- *
- * @param biggestDuration
- * @param bodyCount
- * @param matrix
- */
-void printMatrix(int biggestDuration, int bodyCount, Point** matrix) {
-    for (int i = 0; i < bodyCount; i++) {
-        for (int j = 0; j < biggestDuration; j++) {
-            auto point = matrix[i][j];
-            cout << '(';
-            cout << point.getX();
-            cout << ',';
-            cout << point.getY();
-            cout << ',';
-            cout << j;
-            cout << ')';
-        }
-
-        cout << endl;
+        default:break;
     }
 }
