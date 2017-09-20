@@ -236,7 +236,7 @@ void setupOrthographicMatrix();
 RGB** colorPalette() {
     RGB** palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
     for (int i=0; i<reader->bodyCount; i++) {
-        palette[i] = new RGB((float) (rand() % 100) / 100, ((float)(rand() % 100)) / 100, ((float)(rand() % 100)) / 100);
+        palette[i] = new RGB((float) (rand() % 85 + 15) / 100, ((float)(rand() % 85 + 15)) / 100, ((float)(rand() % 85 + 15)) / 100);
     }
 
     return palette;
