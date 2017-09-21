@@ -120,7 +120,7 @@ void drawCallback(void) {
 
         glLineWidth(thickness);
         glBegin(GL_LINE_STRIP);
-        for (int j=1; j<reader->maxDuration; j++) {
+        for (int j=1; j<reader->duration; j++) {
             if (wanderers[i]->atFrame(j) != nullptr &&
                 (lastPoint == nullptr
                 || wanderers[i]->atFrame(j)->getX() != lastPoint->getX()
@@ -171,14 +171,18 @@ void keyboardCallback(unsigned char key, int x, int y) {
  * @param y
  */
 void keyboardSpecialCallback(int key, int x, int y) {
+    int newDuration;
+
     switch (key) {
         case 100:
-            reader->maxDuration = reader->maxDuration - 10;
+            newDuration = reader->duration - FPS;
+            reader->duration = newDuration <= FPS ? FPS : newDuration;
             glutPostRedisplay();
             return;
 
         case 102:
-            reader->maxDuration = reader->maxDuration + 10;
+            newDuration = reader->duration + FPS;
+            reader->duration = newDuration >= reader->maxDuration ? reader->duration : newDuration;
             glutPostRedisplay();
             return;
 

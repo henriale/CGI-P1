@@ -16,6 +16,7 @@ void Reader::dimensions() {
         if (number > maxDuration) {
             maxDuration = number;
         }
+        duration = maxDuration;
 
         fileStream.ignore(numeric_limits<streamsize>::max(), '\n');
     }
@@ -26,6 +27,10 @@ void Reader::dimensions() {
 string Reader::next() {
     string lineBuffer;
     getline(fileStream, lineBuffer);
+
+//    for (int i = 0; i < 5 && this->hasNext(); ++i) {
+//        getline(fileStream, lineBuffer);
+//    }
 
     return lineBuffer;
 }

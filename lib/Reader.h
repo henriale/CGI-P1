@@ -14,6 +14,7 @@ class Reader {
   public:
     int bodyCount = 0;
     int maxDuration = 0;
+    int duration = 0;
     ifstream fileStream;
     string path;
 
