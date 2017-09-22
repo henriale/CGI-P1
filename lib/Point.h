@@ -4,10 +4,13 @@
 class Point {
   public:
     Point();
+    Point(int x, int y);
+
     void setX(double x);
     void setY(double y);
     double getX();
     double getY();
+    double distanceToPoint(Point* p2);
 
   private:
     double x;

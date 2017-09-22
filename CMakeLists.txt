@@ -6,7 +6,7 @@ find_package(GLUT REQUIRED)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp lib/Point.cpp lib/Point.h lib/Wanderer.cpp lib/Wanderer.h lib/Window.cpp lib/Window.h lib/Reader.cpp lib/Reader.h lib/RGB.cpp lib/RGB.h)
+set(SOURCE_FILES main.cpp lib/Point.cpp lib/Point.h lib/Wanderer.cpp lib/Wanderer.h lib/Window.cpp lib/Window.h lib/Reader.cpp lib/Reader.h lib/RGB.cpp lib/RGB.h lib/SpaceVector.cpp lib/SpaceVector.h)
 
 include_directories(${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS})
 

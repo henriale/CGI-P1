@@ -1,8 +1,14 @@
 #include "Point.h"
+#include "SpaceVector.h"
 
 Point::Point() {
     this->x = 0;
     this->y = 0;
+}
+
+Point::Point(int x, int y) {
+    this->x = x;
+    this->y = y;
 }
 
 void Point::setX(double x) {
@@ -19,4 +25,10 @@ double Point::getX() {
 
 double Point::getY() {
     return this->y;
+}
+
+double Point::distanceToPoint(Point* p2) {
+    SpaceVector* vector = new SpaceVector(this, p2);
+
+    return vector->length();
 }

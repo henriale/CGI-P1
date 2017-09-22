@@ -20,6 +20,7 @@
 #include "lib/Window.h"
 #include "lib/Reader.h"
 #include "lib/RGB.h"
+#include "lib/SpaceVector.h"
 
 using namespace std;
 
@@ -40,6 +41,9 @@ void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
 RGB** colorPalette();
 
+#define FPS 5
+#define SMOOTH_INDEX 10
+
 /**
  * Application startup
  *
@@ -49,6 +53,8 @@ RGB** colorPalette();
  */
 int main(int argc, char* argv[]) {
 
+    SpaceVector* v1 = new SpaceVector(new Point(2,2), new Point(5,5));
+    v1->unit();
     string filename = "../dataset/" + string(argv[1]) + ".txt";
     try {
         reader = new Reader(filename);
@@ -74,6 +80,12 @@ int main(int argc, char* argv[]) {
     // remove this block of code
     for (int i=0; reader->hasNext(); i++) {
         wanderers[i] = reader->nextWandererJourney();
+    }
+
+    for (int i=0; i<reader->bodyCount; i++) {
+        for (int j=1; j<reader->duration; j=(j+SMOOTH_INDEX<reader->duration)?j+SMOOTH_INDEX:reader->duration) {
+
+        }
     }
 
 
@@ -120,7 +132,7 @@ void drawCallback(void) {
 
         glLineWidth(thickness);
         glBegin(GL_LINE_STRIP);
-        for (int j=1; j<reader->duration; j++) {
+        for (int j=1; j<reader->duration; j=(j+SMOOTH_INDEX<reader->duration)?j+SMOOTH_INDEX:reader->duration) {
             if (wanderers[i]->atFrame(j) != nullptr &&
                 (lastPoint == nullptr
                 || wanderers[i]->atFrame(j)->getX() != lastPoint->getX()
