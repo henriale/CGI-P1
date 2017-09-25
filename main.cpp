@@ -5,6 +5,8 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include <GLUT/glut.h>
+#include <cmath>
+#include <vector>
 #else
 #ifdef _WIN32
 #include <windows.h>
@@ -21,6 +23,8 @@
 #include "lib/Reader.h"
 #include "lib/RGB.h"
 #include "lib/SpaceVector.h"
+
+#define LINE_THICKNESS 1.5
 
 using namespace std;
 
@@ -44,7 +48,11 @@ void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void keyboardSpecialCallback(int key, int x, int y);
 void setupOrthographicMatrix();
-RGB** colorPalette();
+void drawHollowCircle(GLfloat x, GLfloat y, GLfloat radius);
+void closestWanderers(int frame, int wandererIndex, vector<int>* group);
+void drawConnectiveLine(Point *p1, Point *p2);
+void analyseGroup();
+RGB** colorPalette(int size);
 
 #define FPS 5
 #define SMOOTH_INDEX 10
@@ -80,7 +88,7 @@ int main(int argc, char* argv[]) {
 
     // TODO:
     // CollorPalette::generate();
-    palette = colorPalette();
+    palette = colorPalette(reader->bodyCount);
 
     // TODO:
     // wanderers = reader->readWanderersJourney();
@@ -92,11 +100,7 @@ int main(int argc, char* argv[]) {
         wanderers[i] = reader->nextWandererJourney();
     }
 
-    for (int i=0; i<reader->bodyCount; i++) {
-        for (int j=1; j<reader->duration; j=(j+SMOOTH_INDEX<reader->duration)?j+SMOOTH_INDEX:reader->duration) {
 
-        }
-    }
 
 
     glutInit(&argc, argv);
@@ -134,7 +138,7 @@ void drawCallback(void) {
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    GLfloat thickness = 2.0;
+    GLfloat thickness = LINE_THICKNESS;
 
     for (int i=0; i<reader->bodyCount; i++) {
         Point* lastPoint = nullptr;
@@ -149,7 +153,7 @@ void drawCallback(void) {
                 || wanderers[i]->atFrame(j)->getY() != lastPoint->getY())
             ) {
                 glVertex2f((GLfloat) wanderers[i]->atFrame(j)->getX(), (GLfloat) wanderers[i]->atFrame(j)->getY());
-                cout << "plotting[" << i << "][" << j << "] " << wanderers[i]->atFrame(j)->getX() << ", " << wanderers[i]->atFrame(j)->getY() << '\n';
+                //cout << "plotting[" << i << "][" << j << "] " << wanderers[i]->atFrame(j)->getX() << ", " << wanderers[i]->atFrame(j)->getY() << '\n';
             }
             lastPoint = wanderers[i]->atFrame(j);
         }
@@ -158,7 +162,109 @@ void drawCallback(void) {
 
     }
 
+    analyseGroup();
+
     glFlush();
+}
+
+/**
+ * @return void
+ */
+void analyseGroup() {
+    int startFrame = reader->duration;
+    int endFrame = 1;
+
+    for (int frame=1; frame < reader->duration; frame= (frame+SMOOTH_INDEX<reader->duration) ? frame+SMOOTH_INDEX : reader->duration) {
+        cout << "[FRAME " << frame << "]" << endl;
+
+        vector<int>* group = new vector<int>();
+        for (int i=0; i<reader->bodyCount; i++) {
+            if (! wanderers[i]->atFrame(frame)->isOnScreen()) {
+                continue;
+            }
+
+            closestWanderers(frame, i, group);
+
+            if (group->size() < GROUP_MIN_MEMBERS) {
+                group->clear();
+            }
+        }
+
+        if (group->size() >= GROUP_MIN_MEMBERS) {
+            if (startFrame > endFrame) {
+                startFrame = frame;
+            }
+            endFrame = frame;
+        }
+
+        if (frame != endFrame) {
+            startFrame = reader->duration;
+            endFrame = frame;
+        }
+
+        if ((endFrame-startFrame) >= GROUP_MIN_FRAMES) {
+            cout << "group found!" << endl;
+            cout << "[ ";
+            for(auto& k : *group) {
+                std::cout << k << ' ';
+            }
+            cout << "]";
+
+            drawHollowCircle(
+                (GLfloat) wanderers[group->at(2)]->atFrame((endFrame+startFrame)/2)->getX(),
+                (GLfloat) wanderers[group->at(2)]->atFrame((endFrame+startFrame)/2)->getY(),
+                GROUP_MIN_FRAMES * 2
+            );
+        }
+
+        cout << endl;
+    }
+}
+
+/**
+ * Find the other people near the given wanderer
+ *
+ * @param frame
+ * @param wandererIndex
+ * @param group
+ */
+void closestWanderers(int frame, int wandererIndex, vector<int>* group) {
+    for (int anotherWandererIndex=wandererIndex+1; anotherWandererIndex < reader->bodyCount; anotherWandererIndex++) {
+        auto p1 = wanderers[wandererIndex]->atFrame(frame);
+        auto p2 = wanderers[anotherWandererIndex]->atFrame(frame);
+
+        if (! p2->isOnScreen()) {
+            continue;
+        }
+
+        auto distance = p1->distanceToPoint(p2);
+
+        //cout << "distance: [" << wandererIndex << "] -> [" << anotherWandererIndex << "] = " << distance << endl;
+        if (distance < GROUP_MAX_DISTANCE && *group != (anotherWandererIndex)) {
+            if (*group != wandererIndex) {
+                group->push_back(wandererIndex);
+            }
+
+            //cout << "desenhando vetor entre os pontos!" << endl;
+            group->push_back(anotherWandererIndex);
+            closestWanderers(frame, anotherWandererIndex, group);
+            //drawConnectiveLine(p1, p2);
+        }
+    }
+}
+
+/**
+ *
+ * @param p1
+ * @param p2
+ */
+void drawConnectiveLine(Point *p1, Point *p2) {
+    glColor3f(0.9, 0.9, 0.9);
+    glLineWidth(1);
+    glBegin(GL_LINE_STRIP);
+    glVertex2f((GLfloat) p1->getX(), (GLfloat) p1->getY());
+    glVertex2f((GLfloat) p2->getX(), (GLfloat) p2->getY());
+    glEnd();
 }
 
 /**
@@ -212,8 +318,38 @@ void keyboardSpecialCallback(int key, int x, int y) {
     }
 }
 
-RGB **colorPalette() {
-    auto palette = (RGB **) calloc(reader->bodyCount, sizeof(RGB));
+/**
+ * @source gist.github.com
+ * @param x
+ * @param y
+ * @param radius
+ */
+void drawHollowCircle(GLfloat x, GLfloat y, GLfloat radius) {
+    int i;
+    int lineAmount = 25;
+
+    GLfloat twicePi = 2.0f * PI;
+
+    glLineWidth(5);
+    glColor3f(0.8f, 0.4f, 0.4f);
+
+    glBegin(GL_LINE_LOOP);
+    for(i = 0; i <= lineAmount;i++) {
+        glVertex2f(
+            x + (radius * cos(i *  twicePi / lineAmount)),
+            y + (radius * sin(i * twicePi / lineAmount))
+        );
+    }
+    glEnd();
+}
+
+/**
+ * generate a random color palette
+ *
+ * @return void
+ */
+RGB **colorPalette(int size) {
+    auto palette = (RGB **) calloc(size, sizeof(RGB));
     for (int i=0; i<reader->bodyCount; i++) {
         palette[i] = new RGB();
     }
