@@ -24,12 +24,17 @@
 
 using namespace std;
 
-class EventObserver {
-  public:
+template<typename T>
+inline static bool operator ==(const vector<T>& v, const T& elem)
+{
+    return (find(v.begin(), v.end(), elem) != v.end());
+}
 
-  private:
-    EventObserver() {}
-};
+template<typename T>
+inline static bool operator !=(const vector<T>& v, const T& elem)
+{
+    return !(find(v.begin(), v.end(), elem) != v.end());
+}
 
 Reader* reader = nullptr;
 Wanderer** wanderers = nullptr;
@@ -43,6 +48,11 @@ RGB** colorPalette();
 
 #define FPS 5
 #define SMOOTH_INDEX 10
+#define PI 3.1415926535897932384626433832795
+
+#define GROUP_MIN_MEMBERS 3
+#define GROUP_MAX_DISTANCE 100
+#define GROUP_MIN_FRAMES 40
 
 /**
  * Application startup
