@@ -5,8 +5,6 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include <GLUT/glut.h>
-#include <cmath>
-#include <vector>
 #else
 #ifdef _WIN32
 #include <windows.h>
@@ -16,6 +14,10 @@
 #include <GL/glut.h>
 #include <limits>
 #endif
+
+#include <cmath>
+#include <vector>
+#include <algorithm>
 
 #include "lib/Point.h"
 #include "lib/Wanderer.h"
