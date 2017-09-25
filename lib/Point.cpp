@@ -32,3 +32,7 @@ double Point::distanceToPoint(Point* p2) {
 
     return vector->length();
 }
+bool Point::isOnScreen() {
+    return !((this == nullptr) || this->x < 1 || this->y < 1);
+
+}

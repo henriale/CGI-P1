@@ -11,6 +11,7 @@ class Point {
     double getX();
     double getY();
     double distanceToPoint(Point* p2);
+    bool isOnScreen();
 
   private:
     double x;
