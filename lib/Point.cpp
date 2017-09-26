@@ -32,7 +32,15 @@ double Point::distanceToPoint(Point* p2) {
 
     return vector->length();
 }
+
 bool Point::isOnScreen() {
     return !((this == nullptr) || this->x < 1 || this->y < 1);
+}
 
+bool Point::operator==(Point *that) {
+    return this->getX() == that->getX() && this->getY() == that->getY();
+}
+
+bool Point::operator!=(Point *that) {
+    return ! (this->getX() == that->getX() && this->getY() == that->getY());
 }

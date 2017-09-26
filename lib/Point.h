@@ -13,6 +13,9 @@ class Point {
     double distanceToPoint(Point* p2);
     bool isOnScreen();
 
+    inline bool operator ==(Point* that);
+    inline bool operator !=(Point* that);
+
   private:
     double x;
     double y;
