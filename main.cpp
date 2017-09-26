@@ -46,6 +46,7 @@ Reader* reader = nullptr;
 Wanderer** wanderers = nullptr;
 RGB** palette = nullptr;
 
+RGB** colorPalette(int size);
 void drawCallback(void);
 void keyboardCallback(unsigned char key, int x, int y);
 void keyboardSpecialCallback(int key, int x, int y);
@@ -54,15 +55,17 @@ void drawHollowCircle(GLfloat x, GLfloat y, GLfloat radius);
 void closestWanderers(int frame, int wandererIndex, vector<int>* group);
 void drawConnectiveLine(Point *p1, Point *p2);
 void analyseGroup();
-RGB** colorPalette(int size);
+void displayCoordinates(int wandererIndex, double x, double y);
+void displayText(const char *text, double x, double y);
 
-#define FPS 5
+#define FPS 10
 #define SMOOTH_INDEX 10
 #define PI 3.1415926535897932384626433832795
 
 #define GROUP_MIN_MEMBERS 3
 #define GROUP_MAX_DISTANCE 100
 #define GROUP_MIN_FRAMES 40
+#define WINDOW_MARGIN 100
 
 /**
  * Application startup
@@ -121,47 +124,75 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void renderText(const char *text, double x, double y) {
-    glColor3f(1, 0, 0);
-    glRasterPos2f((GLfloat) x, (GLfloat) y);
-
-    while (*text != '\0') {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, (int) *text);
-        text++;
-    }
-}
-
 /**
  * @param void
  */
 void drawCallback(void) {
-    renderText("This text should be printed", Window::minX + 20, Window::minY + 20);
-
     glClearColor(1,1,1,0);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    displayText(
+        to_string(reader->duration).insert(0, "FRAME: ").c_str(),
+        Window::minX - WINDOW_MARGIN,
+        Window::minY - (WINDOW_MARGIN/2)
+    );
 
     GLfloat thickness = LINE_THICKNESS;
 
     for (int i=0; i<reader->bodyCount; i++) {
-        Point* lastPoint = nullptr;
-        glColor3f(palette[i]->r, palette[i]->g, palette[i]->b);
+        Point* startPoint = nullptr;
 
+        glColor3f(palette[i]->r, palette[i]->g, palette[i]->b);
         glLineWidth(thickness);
         glBegin(GL_LINE_STRIP);
-        for (int j=1; j<reader->duration; j=(j+SMOOTH_INDEX<reader->duration)?j+SMOOTH_INDEX:reader->duration) {
-            if (wanderers[i]->atFrame(j) != nullptr &&
-                (lastPoint == nullptr
-                || wanderers[i]->atFrame(j)->getX() != lastPoint->getX()
-                || wanderers[i]->atFrame(j)->getY() != lastPoint->getY())
-            ) {
-                glVertex2f((GLfloat) wanderers[i]->atFrame(j)->getX(), (GLfloat) wanderers[i]->atFrame(j)->getY());
-                //cout << "plotting[" << i << "][" << j << "] " << wanderers[i]->atFrame(j)->getX() << ", " << wanderers[i]->atFrame(j)->getY() << '\n';
+
+        for (int frame=1; frame<reader->duration; frame=(frame+SMOOTH_INDEX<reader->duration)?frame+SMOOTH_INDEX:reader->duration) {
+            Point* currPoint = wanderers[i]->atFrame(frame);
+            Point* prevPoint = wanderers[i]->atFrame(frame-1);
+
+            if (currPoint == nullptr) {
+                continue;
             }
-            lastPoint = wanderers[i]->atFrame(j);
+
+            if (prevPoint == nullptr || currPoint != prevPoint) {
+                if (startPoint == nullptr) {
+                    startPoint = currPoint;
+                }
+
+                glVertex2f((GLfloat) currPoint->getX(), (GLfloat) currPoint->getY());
+                //cout << "plotting[" << i << "][" << j << "] " << point->getX() << ", " << point->getY() << '\n';
+            }
         }
 
         glEnd();
 
+        if (startPoint != nullptr) {
+            displayCoordinates(i, startPoint->getX(), startPoint->getY());
+        }
+
+    }
+
+    for (int i = 0; i < reader->bodyCount; i++) {
+        cout << "[ANGLE VARIATION OF " << i << "]" << endl;
+
+        double prevAngle = 0;
+        for (int frame = 1; frame < reader->duration; frame=(frame+SMOOTH_INDEX<reader->duration) ? frame+SMOOTH_INDEX : reader->duration) {
+            if (!wanderers[i]->atFrame(frame)->isOnScreen() || ! wanderers[i]->atFrame(frame+1)->isOnScreen()) {
+                continue;
+            }
+
+            /*
+             * 0 - 10 = -10 -> 10 v
+             * 0 - (-10) = +10 -> 10 v
+             * 10 - 20 = -10 -> 10 v
+             * -10 - 20 = -30 -> 30 v
+             * -30 - (-30) = 0 -> 30 v
+             */
+
+            SpaceVector* v = new SpaceVector(wanderers[i]->atFrame(frame), wanderers[i]->atFrame(frame + 1));
+            cout << frame << " -> " << v->angle() << endl;
+            prevAngle = v->angle();
+        }
     }
 
     analyseGroup();
@@ -176,7 +207,7 @@ void analyseGroup() {
     int startFrame = reader->duration;
     int endFrame = 1;
 
-    for (int frame=1; frame < reader->duration; frame= (frame+SMOOTH_INDEX<reader->duration) ? frame+SMOOTH_INDEX : reader->duration) {
+    for (int frame=1; frame < reader->duration; frame=(frame+SMOOTH_INDEX<reader->duration) ? frame+SMOOTH_INDEX : reader->duration) {
         cout << "[FRAME " << frame << "]" << endl;
 
         vector<int>* group = new vector<int>();
@@ -278,7 +309,7 @@ void drawConnectiveLine(Point *p1, Point *p2) {
  */
 void setupOrthographicMatrix() {
     glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(Window::minX, Window::maxX, Window::maxY, Window::minY);
+    gluOrtho2D(Window::minX - WINDOW_MARGIN, Window::maxX + WINDOW_MARGIN, Window::maxY + WINDOW_MARGIN, Window::minY - WINDOW_MARGIN);
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -330,7 +361,7 @@ void drawHollowCircle(GLfloat x, GLfloat y, GLfloat radius) {
     int i;
     int lineAmount = 25;
 
-    GLfloat twicePi = 2.0f * PI;
+    GLfloat twicePi = (GLfloat) (2.0f * PI);
 
     glLineWidth(5);
     glColor3f(0.8f, 0.4f, 0.4f);
@@ -351,10 +382,45 @@ void drawHollowCircle(GLfloat x, GLfloat y, GLfloat radius) {
  * @return void
  */
 RGB **colorPalette(int size) {
-    auto palette = (RGB **) calloc(size, sizeof(RGB));
+    auto palette = (RGB **) calloc((size_t) size, sizeof(RGB));
     for (int i=0; i<reader->bodyCount; i++) {
         palette[i] = new RGB();
     }
 
     return palette;
+}
+
+/**
+ * example: (100,200)
+ *
+ * @param x
+ * @param y
+ */
+void displayCoordinates(int wandererIndex, double x, double y) {
+    char* text = new char[15];
+    sprintf(text, "[%d](%d,%d)", wandererIndex, (int) x, (int) y);
+
+    glColor3f(0.8f, 0.8f, 0.8f);
+    glRasterPos2f((GLfloat) x, (GLfloat) y);
+
+    while (*text != '\0') {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, (int) *text);
+        text++;
+    }
+}
+
+/**
+ *
+ * @param text
+ * @param x
+ * @param y
+ */
+void displayText(const char *text, double x, double y) {
+    glColor3f(0.4f, 0.4f, 0.4f);
+    glRasterPos2f((GLfloat) x, (GLfloat) y);
+
+    while (*text != '\0') {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, (int) *text);
+        text++;
+    }
 }

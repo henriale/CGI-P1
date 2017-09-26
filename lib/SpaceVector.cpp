@@ -19,7 +19,9 @@ void SpaceVector::invert() {
 
 // TODO
 double SpaceVector::angle() {
-    return 0;
+    double ang = atan2(this->p2->getX() - this->p1->getX(), this->p1->getY() - this->p2->getY());
+
+    return ang * 180 / 3.1412;
 }
 
 // TODO
